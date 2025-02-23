@@ -49,10 +49,7 @@ paths:
                 $ref: '#/components/schemas/Athlete'
         '404':
           description: Not found
-          content:
-            application/json:
-            schema:
-              $ref: '#/components/schemas/Problem'
+
   /ahlete/stats:
     get:
       tags:
@@ -68,11 +65,21 @@ paths:
                 $ref: '#/components/schemas/AthleteStats'
         '404':
           description: Not found
+  /athlete/stats/totals:
+    get:
+      tags:
+        - athletes
+      summary: Get athlete stats totals
+      operationId: getAthleteStatsTotals
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
-            schema:
-              $ref: '#/components/schemas/Problem'
-
+              schema:
+                $ref: '#/components/schemas/TotalDistance'
+        '404':
+          description: Not found
 components:
   schemas:
     Problem:
@@ -176,3 +183,8 @@ components:
           type: number
         achievement_count:
           type: integer
+    TotalDistance:
+        type: object
+        properties:
+          total_distance:
+            type: number

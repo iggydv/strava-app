@@ -42,6 +42,21 @@ type Athlete struct {
 	Weight        *float32   `json:"weight,omitempty"`
 }
 
+// AthleteStats defines model for AthleteStats.
+type AthleteStats struct {
+	AllRideTotals             *Totals  `json:"all_ride_totals,omitempty"`
+	AllRunTotals              *Totals  `json:"all_run_totals,omitempty"`
+	AllSwimTotals             *Totals  `json:"all_swim_totals,omitempty"`
+	BiggestClimbElevationGain *float32 `json:"biggest_climb_elevation_gain,omitempty"`
+	BiggestRideDistance       *float32 `json:"biggest_ride_distance,omitempty"`
+	RecentRideTotals          *Totals  `json:"recent_ride_totals,omitempty"`
+	RecentRunTotals           *Totals  `json:"recent_run_totals,omitempty"`
+	RecentSwimTotals          *Totals  `json:"recent_swim_totals,omitempty"`
+	YtdRideTotals             *Totals  `json:"ytd_ride_totals,omitempty"`
+	YtdRunTotals              *Totals  `json:"ytd_run_totals,omitempty"`
+	YtdSwimTotals             *Totals  `json:"ytd_swim_totals,omitempty"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	Detail string `json:"detail"`
@@ -49,11 +64,32 @@ type Problem struct {
 	Title  string `json:"title"`
 }
 
+// TotalDistance defines model for TotalDistance.
+type TotalDistance struct {
+	TotalDistance *float32 `json:"total_distance,omitempty"`
+}
+
+// Totals defines model for Totals.
+type Totals struct {
+	AchievementCount *int     `json:"achievement_count,omitempty"`
+	Count            *int     `json:"count,omitempty"`
+	Distance         *float32 `json:"distance,omitempty"`
+	ElapsedTime      *int     `json:"elapsed_time,omitempty"`
+	ElevationGain    *float32 `json:"elevation_gain,omitempty"`
+	MovingTime       *int     `json:"moving_time,omitempty"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get athlete stats
+	// (GET /ahlete/stats)
+	GetAthleteStats(w http.ResponseWriter, r *http.Request)
 	// Get athlete
 	// (GET /athlete)
 	GetAthlete(w http.ResponseWriter, r *http.Request)
+	// Get athlete stats totals
+	// (GET /athlete/stats/totals)
+	GetAthleteStatsTotals(w http.ResponseWriter, r *http.Request)
 	// Get auth
 	// (GET /auth)
 	Auth(w http.ResponseWriter, r *http.Request)
@@ -66,9 +102,21 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// Get athlete stats
+// (GET /ahlete/stats)
+func (_ Unimplemented) GetAthleteStats(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get athlete
 // (GET /athlete)
 func (_ Unimplemented) GetAthlete(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get athlete stats totals
+// (GET /athlete/stats/totals)
+func (_ Unimplemented) GetAthleteStatsTotals(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -93,11 +141,39 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// GetAthleteStats operation middleware
+func (siw *ServerInterfaceWrapper) GetAthleteStats(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAthleteStats(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetAthlete operation middleware
 func (siw *ServerInterfaceWrapper) GetAthlete(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetAthlete(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAthleteStatsTotals operation middleware
+func (siw *ServerInterfaceWrapper) GetAthleteStatsTotals(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAthleteStatsTotals(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -249,7 +325,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/ahlete/stats", wrapper.GetAthleteStats)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/athlete", wrapper.GetAthlete)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/athlete/stats/totals", wrapper.GetAthleteStatsTotals)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/auth", wrapper.Auth)
@@ -264,18 +346,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/5RUwW7jNhD9FYLtUY3UJIdANyOHImjRBO0xMIwRObKYUCSXHDkxAv/7YiRbtmV5F3sy",
-	"zZk3897jaL6k8m3wDh0lWX7JpBpsoT8uqLFIyMcQfcBIBvtABXqNK9oGXBnNF3yUpTSOcI1R7jJZGX8S",
-	"SBSNW/O9MrSdD/jOUbwSiwiEegXE4drHlk9SA+EfZFqU2SWmNjGRgxZnK9beWv+BcZ58HQ26K8KuCbbw",
-	"g3YhYmu69iRWeW8R3BD0tbHXgH1s1aI+xx9TIibfRYWrREA4Ty7h5yx2CjmJdG1raJ5wF/QvP0eXMF61",
-	"5wPNujlt5rq2Yua7sZKv3lARJ79EX1lsL6dSI4GxfMJPaAM7OpojnCdR+87pOXJsQ5fOkPfFfTZjJBka",
-	"XurY4t/rlfvX+daZiFqWr3vw2C47MF5eqGSkcbUfZCUVTSDjnSzl/xRhA2Lx8iRHNueXG4xpyP3zprgp",
-	"mLUP6CAYWcq7/iqTAajpBedw/MjX2L8Bewrc7knLUv6FdNgD/awF79Lg921R8I/yjtD1SAjBGtVj87fE",
-	"HA77hE+/R6xlKX/Ljwsn32+b/NCiV36u+Pnv3kgeSOD9wIwEjJQI1onN3d8kueTsHDpqrmpacHCi5q64",
-	"vXT7P9QmoqIkyIu9y7WPgqujo73WOX5Dh5Ec/x2IKbC2AvV+Qu685yNYi1pU20NDqAmnLTMRot8YjUmA",
-	"UpiY4Ds6AU6LiHXE1Aw3Mptofzz0n3/Nn3h/gp5q69dM5OmT5eu00D9egRUaN2h9aNGRGHJlJrtoZSkb",
-	"olDmueW8xicqH4qHQu6WY59pxYUiszG0FaM8/qKGFSNhCPJi2GUXyGFS5oGHKbqEPY/pwwjsq0xG4ViJ",
-	"bdktd98DAAD//xEjOmhgBwAA",
+	"H4sIAAAAAAAC/7xWT4/bthP9KgJ/v6MauckeAt0WKVAELZqg6S1YCCNyJDOhSJYceWME/u4FSdmybGo3",
+	"MZqeTHP45s/jmxG/Mm4GazRq8qz+yjzf4gBxeU9bhYRhaZ2x6EhiNLQgemxob7GRImyEJauZ1IQ9OnYo",
+	"WSvNmcGTk7oP+1zSPm8woya3YnMIhKIBCubOuCGsmADCn0gOyMprTCedJw0DZj12RinziC6ffOck6pXC",
+	"1gpW8EQ463CQ43Bma41RCDoZTSfVGjDamgHFEj8fcejN6Dg2noAwn5zHL1nsJeTMMg6DpHzCoxXffR2j",
+	"R7dKzyPKfnseTI9DGzI/nDyZ9hNyCocnVX4gSIJdShOUapwU2JAhUHHr/w47VrP/VbPQq0nl1V/p1KFM",
+	"wFHfhPOPcvhuYCv7Hj01XMmhbVDhDkga3fQgdYaKGRDLE9ITaI7Zkw45arqNhyP2Biom6E1s7Enclm8E",
+	"3pBswN2QaU6R751pFQ7XYhRIIFVY4RcYbOjxU7sW2lDRmVGLXLuExhz9Anm3uSszrU2S0uyYQ/yx7jne",
+	"0t+jdChY/XECn8KVx4wfMlVGBn45k92y1kjjU7I8rPnMdTHfStzhEOQUPwz5sfaE6cn+QAXWo2jisMrC",
+	"v6EdB7OTul/1cV1u2JK6M0kZnjtpQwRWsw/kYAfF/fu37HShy80dOp/O/vxi82IT4huLGqxkNXsVt0pm",
+	"gbaRvgriiKz8cUb2GGkKFMeq3gpWs1+RFrM0fkqs0T7dwcvNJvxwowkTy2Ctkjw6qD55o+fnwnPds4gT",
+	"iVgS8O63UNHd5u6am1nMh+mzBOGVELIvILkt/JQ/Qe+DrKd9zx4CpoL5HfMMEf8BB/9++c8WnnRQzYPu",
+	"W+QwteYPJGQ5UH6QKgo61rHG0UjbVU7ug/GCglebl9f5/IlCOuQxXjF1bmdcEbyjpomgXLIpwim58Dcl",
+	"xkGpFvjns+SWMd+AUiiKdn8MCB3hZciysM7spEBfAOfoQ4KfURegReGwc+i3aYeVF7W/OcbPS+D6qha1",
+	"naEva4vvURcmGqs/Xjr63XBQhcAdKmPD/C/SWVay0SlWsy2RratKhXNb46l+vXm9YYeHU5xLj/ec5E7S",
+	"vjiVF9SQ3qIMkjF8dg7lFXISUhZ4VNE17N3peJLA5OVCCrOnQMvh4fBPAAAA//8Uv0ueiQ0AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

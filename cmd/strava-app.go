@@ -68,7 +68,7 @@ func main() {
 		r.Get("/callback", stravaAuthHandler.Callback)
 		r.Get("/athlete", stravaAthleteHandler.GetAthlete)
 		r.Get("/athlete/stats", stravaAthleteHandler.GetAthleteStats)
-		r.Get("/athlete/distance/total", stravaAthleteHandler.GetAthleteTotalDistance)
+		r.Get("/athlete/stats/total", stravaAthleteHandler.GetAthleteTotalDistance)
 	})
 
 	if config.BaseURL == "" {
