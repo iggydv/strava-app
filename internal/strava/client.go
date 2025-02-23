@@ -22,13 +22,15 @@ type Connector struct {
 }
 
 func (c *Connector) GetAthlete() (*models.Athlete, error, int) {
+	if err := c.refreshIfNeeded(); err != nil {
+		return nil, fmt.Errorf("no refresh token available"), http.StatusUnauthorized
+	}
+
 	req, err := http.NewRequest("GET", "https://www.strava.com/api/v3/athlete", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := c.RefreshIfNeeded(); err != nil {
-		return nil, fmt.Errorf("no refresh token available"), http.StatusUnauthorized
-	}
+
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
 
 	resp, err := c.Client.Do(req)
@@ -39,36 +41,65 @@ func (c *Connector) GetAthlete() (*models.Athlete, error, int) {
 		return nil, fmt.Errorf("failed to get athlete: %s", resp.Status), resp.StatusCode
 	}
 
-	var result *models.Athlete
-	err = parse.JSON(resp.Body, &result)
-	return result, nil, resp.StatusCode
+	var athlete *models.Athlete
+	if err := parse.JSON(resp.Body, &athlete); err != nil {
+		return nil, err, http.StatusInternalServerError
+	}
+
+	return athlete, nil, resp.StatusCode
 }
 
-func (c *Connector) GetAthleteStats(id int) (*models.AthleteStats, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.strava.com/api/v3/athletes/%d/stats", id), nil)
+func (c *Connector) GetAthleteStats() (*models.AthleteStats, error, int) {
+	// Get athlete information
+	athlete, err, status := c.GetAthlete()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err, status
+	}
+	if athlete.ID == 0 {
+		return nil, fmt.Errorf("athlete ID missing"), http.StatusNotFound
 	}
 
-	if err := c.RefreshIfNeeded(); err != nil {
-		return nil, fmt.Errorf("no refresh token available")
+	// Get athlete stats
+	stats, err, status := c.getAthleteStats(athlete.ID)
+	if err != nil {
+		return nil, err, status
 	}
 
+	return stats, nil, http.StatusOK
+}
+
+func (c *Connector) getAthleteStats(athleteID int) (*models.AthleteStats, error, int) {
+	if err := c.refreshIfNeeded(); err != nil {
+		return nil, fmt.Errorf("no refresh token available"), http.StatusUnauthorized
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.strava.com/api/v3/athletes/%d/stats", athleteID), nil)
+	if err != nil {
+		return nil, err, http.StatusInternalServerError
+	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
 
 	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err, resp.StatusCode
+	}
 	defer resp.Body.Close()
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to get athlete stats: %s", resp.Status)
+	var stats *models.AthleteStats
+	if err := parse.JSON(resp.Body, &stats); err != nil {
+		return nil, err, http.StatusInternalServerError
 	}
 
-	var result *models.AthleteStats
-	err = parse.JSON(resp.Body, &result)
-	return result, nil
+	return stats, nil, http.StatusOK
 }
 
-func (c *Connector) RefreshToken() error {
+func (c *Connector) SetTokens(tokens models.TokenResponse) {
+	c.AccessToken = tokens.AccessToken
+	c.RefreshedToken = tokens.RefreshToken
+	c.ExpiresAt = tokens.ExpiresAt
+}
+
+func (c *Connector) refreshToken() error {
 	if c.RefreshedToken == "" {
 		return fmt.Errorf("no refresh token available")
 	}
@@ -101,20 +132,14 @@ func (c *Connector) RefreshToken() error {
 	return nil
 }
 
-func (c *Connector) IsTokenExpired() bool {
+func (c *Connector) isTokenExpired() bool {
 	return time.Now().Unix() > c.ExpiresAt
 }
 
-func (c *Connector) RefreshIfNeeded() error {
-	if !c.IsTokenExpired() {
+func (c *Connector) refreshIfNeeded() error {
+	if !c.isTokenExpired() {
 		return nil
 	}
 	// Refresh token logic here
-	return c.RefreshToken()
-}
-
-func (c *Connector) SetTokens(tokens models.TokenResponse) {
-	c.AccessToken = tokens.AccessToken
-	c.RefreshedToken = tokens.RefreshToken
-	c.ExpiresAt = tokens.ExpiresAt
+	return c.refreshToken()
 }

@@ -47,6 +47,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Athlete'
+        '404':
+          description: Not found
+          content:
+            application/json:
+            schema:
+              $ref: '#/components/schemas/Problem'
+  /ahlete/stats:
+    get:
+      tags:
+        - athletes
+      summary: Get athlete stats
+      operationId: getAthleteStats
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AthleteStats'
+        '404':
+          description: Not found
+          content:
+            application/json:
+            schema:
+              $ref: '#/components/schemas/Problem'
 
 components:
   schemas:
@@ -110,4 +135,44 @@ components:
           type: string
           format: date-time
         badge_type_id:
+          type: integer
+    AthleteStats:
+      type: object
+      properties:
+        biggest_ride_distance:
+          type: number
+        biggest_climb_elevation_gain:
+          type: number
+        recent_ride_totals:
+          $ref: '#/components/schemas/Totals'
+        recent_run_totals:
+          $ref: '#/components/schemas/Totals'
+        recent_swim_totals:
+          $ref: '#/components/schemas/Totals'
+        ytd_ride_totals:
+          $ref: '#/components/schemas/Totals'
+        ytd_run_totals:
+          $ref: '#/components/schemas/Totals'
+        ytd_swim_totals:
+          $ref: '#/components/schemas/Totals'
+        all_ride_totals:
+          $ref: '#/components/schemas/Totals'
+        all_run_totals:
+          $ref: '#/components/schemas/Totals'
+        all_swim_totals:
+          $ref: '#/components/schemas/Totals'
+    Totals:
+      type: object
+      properties:
+        count:
+          type: integer
+        distance:
+          type: number
+        moving_time:
+          type: integer
+        elapsed_time:
+          type: integer
+        elevation_gain:
+          type: number
+        achievement_count:
           type: integer
