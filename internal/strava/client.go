@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strava-app/internal/parse"
-	"strava-app/internal/web/stravaauth"
+	"strava-app/internal/strava/web/models"
 	"time"
 )
 
@@ -21,13 +21,13 @@ type Connector struct {
 	RedirectURI    string
 }
 
-func (c *Connector) GetAthlete() (*Athlete, error) {
+func (c *Connector) GetAthlete() (*models.Athlete, error, int) {
 	req, err := http.NewRequest("GET", "https://www.strava.com/api/v3/athlete", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if err := c.RefreshIfNeeded(); err != nil {
-		return nil, fmt.Errorf("no refresh token available")
+		return nil, fmt.Errorf("no refresh token available"), http.StatusUnauthorized
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
 
@@ -36,15 +36,15 @@ func (c *Connector) GetAthlete() (*Athlete, error) {
 	defer resp.Body.Close()
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get athlete: %s", resp.Status)
+		return nil, fmt.Errorf("failed to get athlete: %s", resp.Status), resp.StatusCode
 	}
 
-	var result *Athlete
+	var result *models.Athlete
 	err = parse.JSON(resp.Body, &result)
-	return result, nil
+	return result, nil, resp.StatusCode
 }
 
-func (c *Connector) GetAthleteStats(id int) (*AthleteStats, error) {
+func (c *Connector) GetAthleteStats(id int) (*models.AthleteStats, error) {
 	req, err := http.NewRequest("GET", "https://www.strava.com/api/v3/athletes/33255480/stats", nil)
 	if err != nil {
 		log.Fatal(err)
@@ -63,7 +63,7 @@ func (c *Connector) GetAthleteStats(id int) (*AthleteStats, error) {
 		return nil, fmt.Errorf("failed to get athlete stats: %s", resp.Status)
 	}
 
-	var result *AthleteStats
+	var result *models.AthleteStats
 	err = parse.JSON(resp.Body, &result)
 	return result, nil
 }
@@ -89,7 +89,7 @@ func (c *Connector) RefreshToken() error {
 		return fmt.Errorf("refresh token request failed with status: %d", resp.StatusCode)
 	}
 
-	var tokenResp stravaauth.TokenResponse
+	var tokenResp models.TokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return fmt.Errorf("failed to decode refresh response: %w", err)
 	}
@@ -113,7 +113,7 @@ func (c *Connector) RefreshIfNeeded() error {
 	return c.RefreshToken()
 }
 
-func (c *Connector) SetTokens(tokens stravaauth.TokenResponse) {
+func (c *Connector) SetTokens(tokens models.TokenResponse) {
 	c.AccessToken = tokens.AccessToken
 	c.RefreshedToken = tokens.RefreshToken
 	c.ExpiresAt = tokens.ExpiresAt

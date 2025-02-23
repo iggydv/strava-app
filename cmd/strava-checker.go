@@ -1,56 +1,72 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
-	"strava-app/internal/web/stravaauth"
-	"strava-app/pkg/strava"
+	"strava-app/internal/strava"
+	"strava-app/internal/strava/web/handlers"
+	"strava-app/internal/strava/web/models"
 	"time"
 )
+
+type Config struct {
+	BaseURL      string
+	ClientID     string
+	ClientSecret string
+}
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	s := &strava.Connector{
-		Client:       client,
+	config := Config{
+		BaseURL:      os.Getenv("BASE_URL"),
 		ClientID:     os.Getenv("CLIENT_ID"),
 		ClientSecret: os.Getenv("CLIENT_SECRET"),
+	}
+	if config.ClientID == "" || config.ClientSecret == "" {
+		log.Fatal("Missing CLIENT_ID or CLIENT_SECRET")
+	}
+
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	s := &strava.Connector{
+		Client:       httpClient,
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
 		RedirectURI:  "http://localhost:8080/callback",
 	}
 
 	// Initialize auth config
-	config := stravaauth.StravaConfig{
-		ClientID:     os.Getenv("CLIENT_ID"),
-		ClientSecret: os.Getenv("CLIENT_SECRET"),
+	stravaConfig := models.StravaConfig{
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
 		RedirectURI:  "http://localhost:8080/callback",
 	}
 
 	// Token callback function to update the connector
-	tokenHandler := func(tokens stravaauth.TokenResponse) error {
+	tokenCallbackHandler := func(tokens models.TokenResponse) error {
 		s.SetTokens(tokens)
-		// Here you might also want to persist tokens to a database
+		// Could save tokens to a database here
 		return nil
 	}
 
-	mux := http.NewServeMux()
+	stravaAuthHandler := handlers.NewAuthHandler(stravaConfig, tokenCallbackHandler)
+	stravaAthleteHandler := handlers.NewAthleteHandler(s)
+	r := chi.NewRouter()
+	r.Use(middleware.Timeout(60 * time.Second))
+	
+	r.Group(func(r chi.Router) {
+		r.Get("/auth", stravaAuthHandler.Auth)
+		r.Get("/callback", stravaAuthHandler.Callback)
+		r.Get("/athlete", stravaAthleteHandler.GetAthlete)
+	})
 
-	mux.HandleFunc("/auth/strava", stravaauth.AuthHandler(config))
-	mux.HandleFunc("/callback", stravaauth.CallbackHandler(config, tokenHandler))
-
-	server := &http.Server{
-		Addr:         ":8080",
-		Handler:      mux,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-	}
-	log.Printf("Starting server on %s", server.Addr)
-	if err := server.ListenAndServe(); err != nil {
+	if err := http.ListenAndServe(config.BaseURL, r); err != nil {
 		log.Fatal(err)
 	}
 }
