@@ -45,7 +45,7 @@ func (c *Connector) GetAthlete() (*models.Athlete, error, int) {
 }
 
 func (c *Connector) GetAthleteStats(id int) (*models.AthleteStats, error) {
-	req, err := http.NewRequest("GET", "https://www.strava.com/api/v3/athletes/33255480/stats", nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.strava.com/api/v3/athletes/%d/stats", id), nil)
 	if err != nil {
 		log.Fatal(err)
 	}

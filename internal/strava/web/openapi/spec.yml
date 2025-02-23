@@ -1,0 +1,113 @@
+---
+openapi: 3.0.0
+info:
+  title: Strava API
+  description: Strava API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: activities
+    description: Activity operations
+  - name: athletes
+    description: Athlete operations
+  - name: auth
+    description: Operations for athlete authentication
+paths:
+  /auth:
+    get:
+      tags:
+        - auth
+      summary: Get auth
+      operationId: Auth
+      responses:
+        '302':
+          description: Redirects to Strava for authentication
+  /callback:
+    get:
+      tags:
+        - auth
+      summary: Callback
+      description: Called by Strava after authentication, provides access token and refresh token
+      operationId: Callback
+      responses:
+        '200':
+          description: OK
+  /athlete:
+    get:
+      tags:
+        - athletes
+      summary: Get athlete
+      operationId: getAthlete
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Athlete'
+
+components:
+  schemas:
+    Problem:
+      type: object
+      required:
+        - title
+        - status
+        - detail
+      properties:
+        status:
+          type: integer
+          example: 404
+        title:
+          type: string
+          example: Not found
+        detail:
+          type: string
+          example: resource not found
+    Athlete:
+      type: object
+      properties:
+        username:
+          type: string
+        bio:
+          type: string
+        firstname:
+          type: string
+        lastname:
+          type: string
+        sex:
+          type: string
+        weight:
+          type: number
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        premium:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        follower:
+          type: integer
+        friend:
+          type: integer
+        id:
+          type: integer
+        profile:
+          type: string
+        profile_medium:
+          type: string
+        resource_state:
+          type: integer
+        summit:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+        badge_type_id:
+          type: integer

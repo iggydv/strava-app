@@ -1,9 +1,6 @@
 package main
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +8,10 @@ import (
 	"strava-app/internal/strava/web/handlers"
 	"strava-app/internal/strava/web/models"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -58,13 +59,19 @@ func main() {
 	stravaAuthHandler := handlers.NewAuthHandler(stravaConfig, tokenCallbackHandler)
 	stravaAthleteHandler := handlers.NewAthleteHandler(s)
 	r := chi.NewRouter()
+
+	// TODO: Use generated OpenAPI server interface
 	r.Use(middleware.Timeout(60 * time.Second))
-	
+
 	r.Group(func(r chi.Router) {
 		r.Get("/auth", stravaAuthHandler.Auth)
 		r.Get("/callback", stravaAuthHandler.Callback)
 		r.Get("/athlete", stravaAthleteHandler.GetAthlete)
 	})
+
+	if config.BaseURL == "" {
+		log.Fatal("Missing BASE_URL")
+	}
 
 	if err := http.ListenAndServe(config.BaseURL, r); err != nil {
 		log.Fatal(err)

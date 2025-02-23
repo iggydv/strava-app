@@ -16,7 +16,7 @@ func NewAthleteHandler(client *strava.Connector) AthleteHandler {
 	}
 }
 
-func (a *AthleteHandler) GetAthlete(w http.ResponseWriter, r *http.Request) {
+func (a *AthleteHandler) GetAthlete(w http.ResponseWriter, _ *http.Request) {
 	athlete, err, statusCode := a.client.GetAthlete()
 	if err != nil {
 		http.Error(w, err.Error(), statusCode)

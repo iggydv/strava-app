@@ -2,6 +2,8 @@ package models
 
 import "time"
 
+// TODO: Use generated OpenAPI server interface
+
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
