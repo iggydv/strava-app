@@ -1,4 +1,4 @@
-
+BUILD_OPTS:=-ldflags="-s -w"
 
 # Absolute path to the root directory of the project
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -10,9 +10,20 @@ THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 TOOLS_FILE := tools.go
 TOOLS_ABS_PATH := $(abspath tools)
 
+BINARY_NAME_STRAVA_APP := strava-app
+
+export GOBIN := $(TOOLS_ABS_PATH)
+export PATH := $(TOOLS_ABS_PATH):$(PATH)
+export GOOS ?= $(shell go env GOOS)
+export GOARCH ?= $(shell go env GOARCH)
+export GO111MODULE=on
+
 clean:
 	go clean -i
+	rm -rf vendor/
 	rm -rf tools/
+	go mod tidy
+	go mod vendor
 
 # Ensure a golang-installed cli tool is installed
 # Usage: tools/<toolname>
@@ -31,6 +42,8 @@ tools/%:
 	$(eval toolpkg := $(toolpkg)@$(shell go list -f '{{.Module.Version}}' -find $(toolpkg)))
 	go install $(toolpkg)
 
+build:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(BUILD_OPTS) -o $(BINARY_NAME_STRAVA_APP) ./cmd/
 
 lint: tools/golangci-lint
 	golangci-lint run -c .golangci.yml --timeout 5m

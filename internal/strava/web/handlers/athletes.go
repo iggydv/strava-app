@@ -18,7 +18,7 @@ func NewAthleteHandler(client *strava.Connector) AthleteHandler {
 }
 
 func (a *AthleteHandler) GetAthlete(w http.ResponseWriter, _ *http.Request) {
-	athlete, err, statusCode := a.client.GetAthlete()
+	athlete, statusCode, err := a.client.GetAthlete()
 	if err != nil {
 		http.Error(w, err.Error(), statusCode)
 	}
@@ -30,8 +30,8 @@ func (a *AthleteHandler) GetAthlete(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (a *AthleteHandler) GetAthleteStats(w http.ResponseWriter, r *http.Request) {
-	stats, err, code := a.client.GetAthleteStats()
+func (a *AthleteHandler) GetAthleteStats(w http.ResponseWriter, _ *http.Request) {
+	stats, code, err := a.client.GetAthleteStats()
 	if err != nil {
 		http.Error(w, err.Error(), code)
 		return
@@ -45,8 +45,8 @@ func (a *AthleteHandler) GetAthleteStats(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (a *AthleteHandler) GetAthleteTotalDistance(w http.ResponseWriter, r *http.Request) {
-	stats, err, code := a.client.GetAthleteStats()
+func (a *AthleteHandler) GetAthleteTotalDistance(w http.ResponseWriter, _ *http.Request) {
+	stats, code, err := a.client.GetAthleteStats()
 	if err != nil {
 		http.Error(w, err.Error(), code)
 		return

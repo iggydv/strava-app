@@ -6,11 +6,12 @@ import (
 	"os"
 	"strava-app/internal/strava"
 	"strava-app/internal/strava/web/handlers"
+	"strava-app/internal/strava/web/middleware"
 	"strava-app/internal/strava/web/models"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -25,11 +26,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
 	config := Config{
 		BaseURL:      os.Getenv("BASE_URL"),
 		ClientID:     os.Getenv("CLIENT_ID"),
 		ClientSecret: os.Getenv("CLIENT_SECRET"),
 	}
+
 	if config.ClientID == "" || config.ClientSecret == "" {
 		log.Fatal("Missing CLIENT_ID or CLIENT_SECRET")
 	}
@@ -52,16 +55,14 @@ func main() {
 	// Token callback function to update the connector
 	tokenCallbackHandler := func(tokens models.TokenResponse) error {
 		s.SetTokens(tokens)
-		// Could save tokens to a database here
+		// Could save tokens to a database/cache here
 		return nil
 	}
 
 	stravaAuthHandler := handlers.NewAuthHandler(stravaConfig, tokenCallbackHandler)
 	stravaAthleteHandler := handlers.NewAthleteHandler(s)
 	r := chi.NewRouter()
-
-	// TODO: Use generated OpenAPI server interface
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(chimiddleware.Timeout(60*time.Second), middleware.TokenRefreshMiddleware(s))
 
 	r.Group(func(r chi.Router) {
 		r.Get("/auth", stravaAuthHandler.Auth)
